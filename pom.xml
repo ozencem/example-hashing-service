@@ -92,7 +92,7 @@
                 <version>2.0.7</version>
                 <configuration>
                     <processTypes>
-                        <web>java -cp target/example-hashing-service-1.0-SNAPSHOT.jar StartServer</web>
+                        <web>java -cp target/classes/:target/dependency/* target/example-hashing-service-1.0-SNAPSHOT.jar StartServer</web>
                     </processTypes>
                 </configuration>
             </plugin>
