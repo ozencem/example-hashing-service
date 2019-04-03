@@ -27,7 +27,7 @@ object StartServer extends App {
   val messageHashService = new MessageHashService(postgresCtx)
   val routes = messageHashService.routes
 
-  val serverBinding = Http().bindAndHandle(routes, "localhost", 8080)
+  val serverBinding = Http().bindAndHandle(routes, "0.0.0.0", ConfigFactory.load().getInt("port"))
 
   serverBinding.onComplete {
     case Success(bound) =>
