@@ -44,7 +44,7 @@ object StartServer extends App {
     val flyway: Flyway = Flyway.configure().dataSource(jdbcUrl, username, password).load()
     flyway.migrate()
 
-    val postgresAsyncContextUrl = s"${jdbcUrl.stripPrefix("jdbc:")}?user=$username&password=$password"
+    val postgresAsyncContextUrl = s"${jdbcUrl}"
     new PostgresAsyncContext(SnakeCase, ConfigFactory.parseMap(Map("url" -> postgresAsyncContextUrl).asJava))
   }
 }
