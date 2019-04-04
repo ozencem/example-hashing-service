@@ -6,29 +6,23 @@ import hashing.MessageHashService
 import io.getquill.{PostgresAsyncContext, SnakeCase}
 import org.flywaydb.core.Flyway
 
+import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
 object StartServer extends App {
 
-  val postgresConfig = ConfigFactory.load().getConfig("postgres")
-  val flyway: Flyway = Flyway.configure().dataSource(postgresConfig.getString("jdbc-url"),
-                                                     postgresConfig.getString("username"),
-                                                     postgresConfig.getString("password")).load()
-  flyway.migrate()
-
   implicit val system = ActorSystem("http-server")
   implicit val materializer = ActorMaterializer()
   implicit val executionContext = system.dispatcher
 
-  val postgresCtx = new PostgresAsyncContext(SnakeCase, "postgres-context")
+  val postgresCtx = initDb()
 
   val messageHashService = new MessageHashService(postgresCtx)
   val routes = messageHashService.routes
 
   val serverBinding = Http().bindAndHandle(routes, "0.0.0.0", ConfigFactory.load().getInt("port"))
-
   serverBinding.onComplete {
     case Success(bound) =>
       println(s"Server online at http://${bound.localAddress.getHostString}:${bound.localAddress.getPort}")
@@ -39,4 +33,18 @@ object StartServer extends App {
   }
 
   Await.result(system.whenTerminated, Duration.Inf)
+
+
+  private def initDb(): PostgresAsyncContext[SnakeCase.type] = {
+    val postgresConfig = ConfigFactory.load().getConfig("postgres")
+    val jdbcUrl = postgresConfig.getString("jdbc-url")
+    val username = postgresConfig.getString("username")
+    val password = postgresConfig.getString("password")
+
+    val flyway: Flyway = Flyway.configure().dataSource(jdbcUrl, username, password).load()
+    flyway.migrate()
+
+    val postgresAsyncContextUrl = s"${jdbcUrl.stripPrefix("jdbc:")}?user=$username&password=$password"
+    new PostgresAsyncContext(SnakeCase, ConfigFactory.parseMap(Map("url" -> postgresAsyncContextUrl).asJava))
+  }
 }
